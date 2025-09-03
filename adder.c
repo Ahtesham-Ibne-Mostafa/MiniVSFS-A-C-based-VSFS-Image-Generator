@@ -1,6 +1,9 @@
 #define _FILE_OFFSET_BITS 64
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>     // ✅ Added for malloc, free
+#include <string.h>     // ✅ Added for memcpy, memset, strcmp, strncpy
+#include <time.h>       // ✅ Added for time()
 
 #define BS 4096u
 #define INODE_SIZE 128u
@@ -9,11 +12,6 @@
 #pragma pack(push, 1)
 
 typedef struct {
-    // CREATE YOUR SUPERBLOCK HERE
-    // ADD ALL FIELDS AS PROVIDED BY THE SPECIFICATION
-    
-    // THIS FIELD SHOULD STAY AT THE END
-    // ALL OTHER FIELDS SHOULD BE ABOVE THIS
     uint32_t magic, version, block_size;
     uint64_t total_blocks, inode_count;
     uint64_t inode_bitmap_start, inode_bitmap_blocks;
@@ -22,18 +20,13 @@ typedef struct {
     uint64_t data_region_start, data_region_blocks;
     uint64_t root_inode, mtime_epoch;
     uint32_t flags;
-    uint32_t checksum;            // crc32(superblock[0..4091])
+    uint32_t checksum;
 } superblock_t;
 #pragma pack(pop)
 _Static_assert(sizeof(superblock_t) == 116, "superblock must fit in one block");
 
 #pragma pack(push,1)
 typedef struct {
-    // CREATE YOUR INODE HERE
-    // IF CREATED CORRECTLY, THE STATIC_ASSERT ERROR SHOULD BE GONE
-
-    // THIS FIELD SHOULD STAY AT THE END
-    // ALL OTHER FIELDS SHOULD BE ABOVE THIS
     uint16_t mode;
     uint16_t links;
     uint32_t uid;
@@ -49,28 +42,22 @@ typedef struct {
     uint32_t proj_id;
     uint32_t uid16_gid16;
     uint64_t xattr_ptr;
-    uint64_t inode_crc;  // low 4 bytes store crc32 of bytes [0..119]; high 4 bytes 0
-
+    uint64_t inode_crc;
 } inode_t;
 #pragma pack(pop)
 _Static_assert(sizeof(inode_t)==INODE_SIZE, "inode size mismatch");
 
 #pragma pack(push,1)
 typedef struct {
-    // CREATE YOUR DIRECTORY ENTRY STRUCTURE HERE
-    // IF CREATED CORRECTLY, THE STATIC_ASSERT ERROR SHOULD BE GONE
     uint32_t inode_no;
     uint8_t type;
     char name[58];
-    uint8_t  checksum; // XOR of bytes 0..62
+    uint8_t checksum;
 } dirent64_t;
 #pragma pack(pop)
 _Static_assert(sizeof(dirent64_t)==64, "dirent size mismatch");
 
-
-// ==========================DO NOT CHANGE THIS PORTION=========================
-// These functions are there for your help. You should refer to the specifications to see how you can use them.
-// ====================================CRC32====================================
+// ========================== CRC32 ==========================
 uint32_t CRC32_TAB[256];
 void crc32_init(void){
     for (uint32_t i=0;i<256;i++){
@@ -84,9 +71,7 @@ uint32_t crc32(const void* data, size_t n){
     for(size_t i=0;i<n;i++) c = CRC32_TAB[(c^p[i])&0xFF] ^ (c>>8);
     return c ^ 0xFFFFFFFFu;
 }
-// ====================================CRC32====================================
 
-// WARNING: CALL THIS ONLY AFTER ALL OTHER SUPERBLOCK ELEMENTS HAVE BEEN FINALIZED
 static uint32_t superblock_crc_finalize(superblock_t *sb) {
     sb->checksum = 0;
     uint32_t s = crc32((void *) sb, BS - 4);
@@ -94,29 +79,24 @@ static uint32_t superblock_crc_finalize(superblock_t *sb) {
     return s;
 }
 
-// WARNING: CALL THIS ONLY AFTER ALL OTHER SUPERBLOCK ELEMENTS HAVE BEEN FINALIZED
 void inode_crc_finalize(inode_t* ino){
     uint8_t tmp[INODE_SIZE]; memcpy(tmp, ino, INODE_SIZE);
-    // zero crc area before computing
     memset(&tmp[120], 0, 8);
     uint32_t c = crc32(tmp, 120);
-    ino->inode_crc = (uint64_t)c; // low 4 bytes carry the crc
+    ino->inode_crc = (uint64_t)c;
 }
 
-// WARNING: CALL THIS ONLY AFTER ALL OTHER SUPERBLOCK ELEMENTS HAVE BEEN FINALIZED
 void dirent_checksum_finalize(dirent64_t* de) {
     const uint8_t* p = (const uint8_t*)de;
     uint8_t x = 0;
-    for (int i = 0; i < 63; i++) x ^= p[i];   // covers ino(4) + type(1) + name(58)
+    for (int i = 0; i < 63; i++) x ^= p[i];
     de->checksum = x;
 }
 
-int main() {
+// ✅ FIXED main signature
+int main(int argc, char* argv[]) {
     crc32_init();
-    // WRITE YOUR DRIVER CODE HERE
-    // PARSE YOUR CLI PARAMETERS
-    // THEN ADD THE SPECIFIED FILE TO YOUR FILE SYSTEM
-    // UPDATE THE .IMG FILE ON DISK
+
     if (argc != 7) {
         fprintf(stderr, "Usage: --input <in.img> --output <out.img> --file <filename>\n");
         return 1;

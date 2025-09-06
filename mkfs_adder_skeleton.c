@@ -236,13 +236,25 @@ int main(int argc, char* argv[]) {
     }
     uint8_t *root_dir_block = image + BS * root_inode->direct[0];
 
+    // Check if file already exists in root directory
+    char namebuf[58];
+    strncpy(namebuf, basename((char *)filename), 57);
+    namebuf[57] = '\0';
+
+    size_t dir_entries = root_inode->size_bytes / sizeof(dirent64_t);
+    dirent64_t *entries = (dirent64_t *)root_dir_block;
+    for (size_t i = 0; i < dir_entries; i++) {
+        if (entries[i].inode_no != 0 && strncmp(entries[i].name, namebuf, 58) == 0) {
+            fprintf(stderr, "Error: File '%s' already exists in root directory.\n", namebuf);
+            free(image);
+            return 1;
+        }
+    }
+
     dirent64_t *entry = (dirent64_t *)(root_dir_block + root_inode->size_bytes);
     memset(entry, 0, sizeof(dirent64_t));
     entry->inode_no = free_ino + 1;
     entry->type = 1;
-    char namebuf[58];
-    strncpy(namebuf, basename((char *)filename), 57);
-    namebuf[57] = '\0';
     strncpy(entry->name, namebuf, 58);
     dirent_checksum_finalize(entry);
 

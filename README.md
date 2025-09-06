@@ -22,8 +22,9 @@ MiniVSFS is a byte-accurate virtual file system built in C for educational and e
 ### 1. 🔧 Build the Tools
 
 ```bash
-1. make clean
-make all
+1.  $gcc -O2 -std=c17 -Wall -Wextra mkfs_builder_skeleton.c -o mkfs_builder
+    $gcc -Wall -Wextra -Werror -o mkfs_adder mkfs_adder_skeleton.c   
+
 This compiles mkfs_builder and mkfs_adder into your working directory.
 
 2. 📦 Create a Blank Filesystem Image

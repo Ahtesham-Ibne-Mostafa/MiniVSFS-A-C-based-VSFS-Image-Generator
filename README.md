@@ -29,7 +29,7 @@ This compiles mkfs_builder and mkfs_adder into your working directory.
 
 2. 📦 Create a Blank Filesystem Image
 bash
-./mkfs_builder --output out.img
+./mkfs_builder --image out.img --size-kib 512 --inodes 256      
 This generates a fresh out.img with an empty root directory.
 
 3. 📁 Add Files to the Image (Step-by-Step)

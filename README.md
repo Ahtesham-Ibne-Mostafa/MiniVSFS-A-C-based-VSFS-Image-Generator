@@ -1,6 +1,6 @@
 # MiniVSFS-A-C-based-VSFS-Image-Generator
 
-#1 
+
 markdown
 # 🧠 MiniVSFS: Minimal Virtual Simple File System
 
@@ -22,7 +22,7 @@ MiniVSFS is a byte-accurate virtual file system built in C for educational and e
 ### 1. 🔧 Build the Tools
 
 ```bash
-make clean
+1. make clean
 make all
 This compiles mkfs_builder and mkfs_adder into your working directory.
 
